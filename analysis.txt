@@ -1,0 +1,34 @@
+1. 
+ In the basic example, the external fragmentation comes out to about 24.41% (and around 27.08% in your own run). What that really means is that roughly
+ a quarter of the free memory isn’t usable for large requests. The memory is technically free, but it’s split into smaller, scattered chunks instead of one
+ big continuous block. This happens because processes are constantly being allocated and removed. Every time one leaves, it creates a gap, and over time
+ those gaps get broken up more and more. Eventually, you end up with a lot of total free memory, but not in a form that’s actually useful.
+
+2.
+ P4 ends up using the block left by P1 simply because First-Fit grabs the first available space that’s big enough. It doesn’t try to find the best match,
+ it just takes the first thing that works to save time. If that block is larger than what P4 needs, the allocator splits it. One part goes to P4, and the
+ leftover becomes a new, smaller free block. That leftover space is still usable, but it can contribute to fragmentation later if it’s too small for future
+ requests.
+
+3.
+The workload with many small processes (workload1.txt) creates much more fragmentation. That’s because lots of small allocations and deallocations leave
+ behind tiny gaps all over memory. For example, if a 50 KB process finishes and a 45 KB process takes its spot, you're left with a microscopic 5 KB hole.
+ Unless a future process needs exactly 5 KB, that space is basically dead. It’s like constantly poking tiny holes in the memory. With fewer large processes
+ (workload2.txt), memory tends to be allocated and freed in massive chunks. Even if a 400 KB process takes over a 500 KB hole (leaving a 100 KB gap), the
+ math works in our favor. When other massive processes nearby finish and release their space, that 100 KB gap can easily merge with them to create huge,
+ reusable blocks. Moving in bigger chunks keeps things more contiguous and heavily reduces fragmentation overall.
+
+4. 
+You can have a situation where an allocation fails even though there’s enough total free memory. For example, if you have 400 KB free but it’s split into
+ two separate 200 KB blocks, a request for 300 KB will fail. The reason is that memory has to be contiguous. Since neither block alone is big enough, the
+ system can’t satisfy the request. This is exactly what external fragmentation looks like in practice, enough memory exists, but it’s not arranged in a
+ usable way.
+
+5.
+ Best-Fit works differently by scanning all available blocks and choosing the one that most closely matches the requested size. This can sometimes help
+ preserve larger blocks for later use. However, it often creates very tiny leftover fragments because it’s always trying to squeeze allocations into the
+ tightest spaces. These tiny pieces are usually too small to be useful, so fragmentation still builds up, just in a different form. On top of that,
+ Best-Fit is slower than First-Fit since it has to search the entire list every time.
+
+
+
